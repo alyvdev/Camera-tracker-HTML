@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Camera Object Detector (single HTML)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0f1724" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background: #111;
+        color: #eee;
+      }
+      .card {
+        position: relative;
+        width: 1000px;
+        max-width: 96vw;
+        background: #0f1724;
+        padding: 16px 16px 12px;
+        border-radius: 12px;
+        border: 1px solid #1f2a3a;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+      }
+      /* Video gets black fallback background; canvas should be transparent so it doesn't look like an opaque block */
+      video {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        background: #000;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        background: transparent;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+        align-items: center;
+      }
+      button {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        background: #06b6d4;
+        color: #012;
+        font-weight: 600;
+      }
+      button.warn {
+        background: #f97316;
+        color: #fff;
+      }
+      .info {
+        margin-left: auto;
+        font-size: 14px;
+        color: #cbd5e1;
+      }
+      .loader {
+        color: #93c5fd;
+        font-size: 13px;
+      }
+      canvas {
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        pointer-events: none;
+      }
+      .viewport {
+        position: relative;
+      }
+      fieldset {
+        border: 1px solid #1e293b;
+        padding: 6px 10px 10px;
+        border-radius: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 10px 0 0 0;
+      }
+      fieldset legend {
+        padding: 0 6px;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #64748b;
+      }
+      label.inline {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #cbd5e1;
+      }
+      select,
+      input[type="range"] {
+        background: #1e293b;
+        color: #e2e8f0;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 4px 6px;
+        font-size: 12px;
+      }
+      input[type="range"] {
+        width: 140px;
+      }
+      .small {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .title {
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        color: #e2e8f0;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .controls .group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .pill {
+        background: #0b1220;
+        border: 1px solid #1f2a3a;
+        color: #cbd5e1;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      .secondary {
+        background: #0ea5e9;
+        color: #012;
+      }
+      .ghost {
+        background: #111827;
+        color: #cbd5e1;
+        border: 1px solid #1f2937;
+      }
+      .danger {
+        background: #ef4444;
+        color: #fff;
+      }
+      .success {
+        background: #22c55e;
+        color: #022;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .row > * {
+        flex: 1 1 auto;
+      }
+      .wide {
+        min-width: 200px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chip {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #0b1220;
+        border: 1px solid #233045;
+        font-size: 11px;
+        color: #9fb3c8;
+      }
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        background: #0b1220;
+        border: 1px solid #1f2a3a;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+      }
+      .note {
+        color: #9ca3af;
+        font-size: 12px;
+      }
+      .select {
+        background: #0b1220;
+        border: 1px solid #1f2a3a;
+        color: #e5e7eb;
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+      .btn {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #1f2a3a;
+        cursor: pointer;
+        background: #0ea5e9;
+        color: #012;
+        font-weight: 600;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn.secondary {
+        background: #1f2937;
+        color: #cbd5e1;
+      }
+      .btn.ghost {
+        background: #0b1220;
+        color: #cbd5e1;
+      }
+      .btn.warn {
+        background: #f97316;
+        color: #fff;
+      }
+      .btn.danger {
+        background: #ef4444;
+        color: #fff;
+      }
+      .btn.success {
+        background: #22c55e;
+        color: #022;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h3 style="margin: 0 0 8px 0">Camera Object Detector — single HTML</h3>
+      <div class="viewport">
+        <!-- visible video -->
+        <video id="video" autoplay playsinline muted></video>
+        <!-- overlay canvas for boxes -->
+        <canvas id="overlay"></canvas>
+      </div>
+
+      <div class="toolbar">
+        <div class="title">Camera Object Detector</div>
+        <div class="spacer"></div>
+        <button class="btn" id="startBtn">Start</button>
+        <button class="btn warn" id="stopBtn" disabled>Stop</button>
+      </div>
+      <div class="controls row">
+        <div class="group wide">
+          <label class="inline"
+            >Device:
+            <select id="deviceSelect" class="select"></select>
+          </label>
+        </div>
+        <div class="group">
+          <label class="inline"
+            >Model:
+            <select id="modelBase" class="select">
+              <option value="lite_mobilenet_v2">
+                Lite Mobilenet V2 (fastest)
+              </option>
+              <option value="mobilenet_v1">Mobilenet V1</option>
+              <option value="mobilenet_v2">Mobilenet V2 (quality)</option>
+            </select>
+          </label>
+        </div>
+        <div class="group">
+          <label class="inline"
+            >Conf:
+            <input
+              id="threshold"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value="0.5"
+            />
+            <span
+              id="thVal"
+              style="min-width: 32px; text-align: right; display: inline-block"
+              >0.50</span
+            >
+          </label>
+        </div>
+        <div class="group">
+          <label class="inline"
+            ><input type="checkbox" id="mirrorToggle" /> Mirror</label
+          >
+          <label class="inline"
+            ><input type="checkbox" id="highPerfToggle" checked /> High
+            Perf</label
+          >
+        </div>
+        <div class="group">
+          <label class="inline"
+            >Backend:
+            <select id="backendSelect" class="select">
+              <option value="webgl">webgl (GPU)</option>
+              <option value="wasm">wasm</option>
+              <option value="cpu">cpu</option>
+            </select>
+          </label>
+        </div>
+        <div class="group">
+          <label class="inline"
+            >Cap FPS:
+            <input
+              id="fpsCap"
+              type="range"
+              min="5"
+              max="60"
+              step="1"
+              value="60"
+            />
+            <span
+              id="fpsCapVal"
+              style="min-width: 26px; display: inline-block; text-align: right"
+              >60</span
+            >
+          </label>
+        </div>
+        <div class="group wide">
+          <label class="inline"
+            >Filter classes:
+            <input
+              id="classFilter"
+              class="select"
+              placeholder="e.g. person, car"
+            />
+          </label>
+        </div>
+        <div class="spacer"></div>
+        <div class="group">
+          <button class="btn secondary" id="captureBtn" disabled>
+            Capture
+          </button>
+          <button class="btn ghost" id="recordBtn" disabled>Record</button>
+          <a id="downloadLink" class="btn success" style="display: none"
+            >Download</a
+          >
+        </div>
+        <div class="group">
+          <div class="loader" id="status">Model: not loaded</div>
+          <div class="info" id="fps">FPS: —</div>
+          <div class="small" id="backendInfo">Backend: —</div>
+        </div>
+      </div>
+      <p class="note" style="margin: 8px 0 0 0">
+        Notes: open from <strong>localhost</strong> or via
+        <strong>HTTPS</strong>. Works on modern Chrome/Firefox. Press
+        <span class="kbd">S</span> to start/stop.
+      </p>
+    </div>
+
+    <!-- TensorFlow.js and COCO-SSD from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.20.0/dist/tf-backend-wasm.min.js"></script>
+
+    <script>
+      // Elements
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("overlay");
+      const ctx = canvas.getContext("2d");
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const statusEl = document.getElementById("status");
+      const fpsEl = document.getElementById("fps");
+      // New settings elements
+      const thresholdInput = document.getElementById("threshold");
+      const thVal = document.getElementById("thVal");
+      const modelBaseSelect = document.getElementById("modelBase");
+      const mirrorToggle = document.getElementById("mirrorToggle");
+      const highPerfToggle = document.getElementById("highPerfToggle");
+      const backendInfo = document.getElementById("backendInfo");
+
+      let model = null;
+      let stream = null;
+      let running = false;
+      let lastFrameTime = performance.now();
+      let fpsSmoother = 0;
+      let confThreshold = 0.5;
+      let currentModelBase = "lite_mobilenet_v2";
+      let mirror = false;
+
+      async function ensureBackend() {
+        try {
+          if (highPerfToggle.checked && tf.getBackend() !== "webgl") {
+            try {
+              await tf.setBackend("webgl");
+            } catch {}
+          }
+          if (tf.getBackend() === "cpu") {
+            // fallback try wasm for speed
+            try {
+              await tf.setBackend("wasm");
+            } catch {}
+          }
+          await tf.ready();
+          backendInfo.textContent = "Backend: " + tf.getBackend();
+        } catch (e) {
+          backendInfo.textContent = "Backend: error";
+          console.warn("Backend selection error", e);
+        }
+      }
+
+      async function loadModel(base = currentModelBase) {
+        statusEl.textContent = "Loading model…";
+        await ensureBackend();
+        try {
+          model = await cocoSsd.load({ base });
+          statusEl.textContent = `Model loaded (${base})`;
+        } catch (err) {
+          statusEl.textContent = "Model failed to load: " + err.message;
+          console.error(err);
+        }
+      }
+
+      // Lazy-load model on first Start for faster initial page load
+
+      async function startCamera() {
+        try {
+          try {
+            // prefer back camera when available
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: false,
+              video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+            });
+          } catch (e) {
+            // fallback to user facing
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: false,
+              video: {
+                facingMode: "user",
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+            });
+          }
+          video.srcObject = stream;
+          await video.play();
+          if (video.readyState >= 2) {
+            resizeCanvasToVideo();
+          } else {
+            await new Promise((res) =>
+              video.addEventListener("loadedmetadata", res, { once: true })
+            );
+            resizeCanvasToVideo();
+          }
+        } catch (err) {
+          statusEl.textContent = "Camera error: " + err.message;
+          console.error(err);
+        }
+      }
+
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach((t) => t.stop());
+          stream = null;
+        }
+        video.pause();
+        video.srcObject = null;
+      }
+
+      function resizeCanvasToVideo() {
+        const w = video.videoWidth || 640;
+        const h = video.videoHeight || 480;
+        video.width = w;
+        video.height = h;
+        canvas.width = w;
+        canvas.height = h;
+        video.style.width = "100%";
+        canvas.style.width = "100%";
+      }
+
+      function drawDetections(detections) {
+        const w = canvas.width,
+          h = canvas.height;
+        ctx.save();
+        ctx.clearRect(0, 0, w, h);
+        if (mirror) {
+          ctx.translate(w, 0);
+          ctx.scale(-1, 1);
+        }
+        detections.forEach((det) => {
+          if (det.score < confThreshold) return;
+          const [x, y, width, height] = det.bbox;
+          const lineWidth = Math.max(2, Math.round(Math.min(w, h) / 200));
+          ctx.lineWidth = lineWidth;
+          ctx.strokeStyle = "#4AEDB3";
+          ctx.fillStyle = "rgba(74,237,179,0.15)";
+          ctx.fillRect(x, y, width, height);
+          ctx.strokeRect(x, y, width, height);
+          const label = `${det.class} ${(det.score * 100).toFixed(0)}%`;
+          ctx.font = `${
+            12 + Math.round(Math.min(w, h) / 150)
+          }px system-ui,sans-serif`;
+          const tw = ctx.measureText(label).width;
+          const pad = 4;
+          const labelY = Math.max(16, y + 14);
+          ctx.fillStyle = "rgba(0,0,0,0.55)";
+          ctx.fillRect(x - 1, labelY - 16, tw + pad * 2 + 2, 16);
+          ctx.fillStyle = "#fff";
+          ctx.fillText(label, x + pad, labelY - 4);
+        });
+        ctx.restore();
+      }
+
+      async function detectLoop() {
+        if (!running) return;
+        if (!model || video.readyState < 2) {
+          requestAnimationFrame(detectLoop);
+          return;
+        }
+        try {
+          const now = performance.now();
+          const dt = now - lastFrameTime;
+          const targetFrameMs = 1000 / (window.__fpsCap || 60);
+          if (dt < targetFrameMs - 2) {
+            requestAnimationFrame(detectLoop);
+            return;
+          }
+          const predictions = await model.detect(video);
+          const fps = 1000 / dt;
+          fpsSmoother = fpsSmoother ? fpsSmoother * 0.85 + fps * 0.15 : fps;
+          fpsEl.textContent = "FPS: " + fpsSmoother.toFixed(1);
+          lastFrameTime = now;
+          if (
+            canvas.width !== video.videoWidth ||
+            canvas.height !== video.videoHeight
+          )
+            resizeCanvasToVideo();
+          drawDetections(predictions);
+        } catch (err) {
+          console.error("Detection error:", err);
+        }
+        requestAnimationFrame(detectLoop);
+      }
+
+      startBtn.addEventListener("click", async () => {
+        startBtn.disabled = true;
+        try {
+          if (!model) {
+            await loadModel();
+          }
+          statusEl.textContent = "Starting camera…";
+          await startCamera();
+          running = true;
+          stopBtn.disabled = false;
+          statusEl.textContent = "Detecting…";
+          lastFrameTime = performance.now();
+          fpsSmoother = 0;
+          window.__fpsCap =
+            parseInt(document.getElementById("fpsCap").value, 10) || 60;
+          document.getElementById("captureBtn").disabled = false;
+          document.getElementById("recordBtn").disabled = false;
+          detectLoop();
+        } catch (e) {
+          startBtn.disabled = false;
+          statusEl.textContent = "Failed to start: " + e.message;
+        }
+      });
+
+      stopBtn.addEventListener("click", () => {
+        running = false;
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+        stopCamera();
+        statusEl.textContent = "Stopped";
+        fpsEl.textContent = "FPS: —";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+
+      thresholdInput.addEventListener("input", () => {
+        confThreshold = parseFloat(thresholdInput.value);
+        thVal.textContent = confThreshold.toFixed(2);
+      });
+
+      // FPS Cap UI
+      const fpsCapInput = document.getElementById("fpsCap");
+      const fpsCapVal = document.getElementById("fpsCapVal");
+      fpsCapInput?.addEventListener("input", () => {
+        window.__fpsCap = parseInt(fpsCapInput.value, 10) || 60;
+        fpsCapVal.textContent = String(window.__fpsCap);
+      });
+
+      // Backend selection UI
+      const backendSelect = document.getElementById("backendSelect");
+      backendSelect?.addEventListener("change", async () => {
+        try {
+          await tf.setBackend(backendSelect.value);
+          await tf.ready();
+          backendInfo.textContent = "Backend: " + tf.getBackend();
+        } catch (e) {
+          console.warn("Backend switch failed", e);
+        }
+      });
+
+      // Capture snapshot
+      const captureBtn = document.getElementById("captureBtn");
+      captureBtn?.addEventListener("click", () => {
+        try {
+          const out = document.createElement("canvas");
+          out.width = video.videoWidth;
+          out.height = video.videoHeight;
+          const octx = out.getContext("2d");
+          if (!octx) return;
+          if (mirror) {
+            octx.translate(out.width, 0);
+            octx.scale(-1, 1);
+          }
+          octx.drawImage(video, 0, 0);
+          octx.drawImage(canvas, 0, 0);
+          const url = out.toDataURL("image/png");
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "capture.png";
+          a.click();
+        } catch (e) {
+          console.warn("Capture failed", e);
+        }
+      });
+
+      // Recording annotated stream
+      const recordBtn = document.getElementById("recordBtn");
+      const downloadLink = document.getElementById("downloadLink");
+      let recorder = null;
+      let chunks = [];
+      recordBtn?.addEventListener("click", () => {
+        if (!recorder) {
+          const stream = canvas.captureStream(window.__fpsCap || 30);
+          recorder = new MediaRecorder(stream, {
+            mimeType: "video/webm;codecs=vp9",
+          });
+          chunks = [];
+          recorder.ondataavailable = (e) => {
+            if (e.data.size) chunks.push(e.data);
+          };
+          recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: "video/webm" });
+            const url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = "recording.webm";
+            downloadLink.style.display = "inline-block";
+            recorder = null;
+            recordBtn.textContent = "Record";
+          };
+          recorder.start();
+          recordBtn.textContent = "Stop";
+        } else {
+          recorder.stop();
+        }
+      });
+
+      // Auto-pause on tab hidden
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          if (running) stopBtn.click();
+        } else {
+          if (!running) startBtn.click();
+        }
+      });
+
+      // Class filter
+      const classFilter = document.getElementById("classFilter");
+      function getAllowedClasses() {
+        const raw = (classFilter?.value || "").trim();
+        if (!raw) return null;
+        return new Set(
+          raw
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean)
+        );
+      }
+      // Wrap drawDetections to filter classes
+      const _drawDetections = drawDetections;
+      function drawDetections(detections) {
+        const allowed = getAllowedClasses();
+        const filtered = allowed
+          ? detections.filter((d) => allowed.has(String(d.class).toLowerCase()))
+          : detections;
+        _drawDetections(filtered);
+      }
+
+      // Persist settings
+      const persistKeys = [
+        ["threshold", () => thresholdInput.value],
+        ["modelBase", () => modelBaseSelect.value],
+        ["mirror", () => String(mirrorToggle.checked)],
+        ["highPerf", () => String(highPerfToggle.checked)],
+        ["backend", () => backendSelect.value],
+        [
+          "deviceId",
+          () => document.getElementById("deviceSelect")?.value || "",
+        ],
+        ["fpsCap", () => fpsCapInput.value],
+        ["classFilter", () => classFilter.value],
+      ];
+      function saveSettings() {
+        const data = {};
+        persistKeys.forEach(([k, getter]) => (data[k] = getter()));
+        localStorage.setItem("detectorSettings", JSON.stringify(data));
+      }
+      function loadSettings() {
+        try {
+          const raw = localStorage.getItem("detectorSettings");
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          if (data.threshold) {
+            thresholdInput.value = data.threshold;
+            thVal.textContent = parseFloat(data.threshold).toFixed(2);
+            confThreshold = parseFloat(data.threshold);
+          }
+          if (data.modelBase) {
+            modelBaseSelect.value = data.modelBase;
+            currentModelBase = data.modelBase;
+          }
+          if (data.mirror) {
+            mirrorToggle.checked = data.mirror === "true";
+            mirror = mirrorToggle.checked;
+          }
+          if (data.highPerf) {
+            highPerfToggle.checked = data.highPerf === "true";
+          }
+          if (data.backend) {
+            backendSelect.value = data.backend;
+          }
+          if (data.fpsCap) {
+            fpsCapInput.value = data.fpsCap;
+            fpsCapVal.textContent = data.fpsCap;
+            window.__fpsCap = parseInt(data.fpsCap, 10) || 60;
+          }
+          if (data.deviceId) {
+            // set after refreshDevices runs in startCamera; but try now too
+            const ds = document.getElementById("deviceSelect");
+            if (ds) ds.value = data.deviceId;
+          }
+          if (data.classFilter) {
+            classFilter.value = data.classFilter;
+          }
+        } catch {}
+      }
+      [
+        thresholdInput,
+        modelBaseSelect,
+        mirrorToggle,
+        highPerfToggle,
+        backendSelect,
+        classFilter,
+      ].forEach((el) => {
+        el?.addEventListener("change", saveSettings);
+        el?.addEventListener("input", saveSettings);
+      });
+      loadSettings();
+      modelBaseSelect.addEventListener("change", async () => {
+        currentModelBase = modelBaseSelect.value;
+        await loadModel(currentModelBase);
+      });
+
+      // Camera device selection
+      const deviceSelect = document.getElementById("deviceSelect");
+      async function refreshDevices() {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videos = devices.filter((d) => d.kind === "videoinput");
+          const current = deviceSelect.value;
+          deviceSelect.innerHTML = "";
+          videos.forEach((d) => {
+            const opt = document.createElement("option");
+            opt.value = d.deviceId;
+            opt.textContent = d.label || `Camera ${deviceSelect.length + 1}`;
+            deviceSelect.appendChild(opt);
+          });
+          if (
+            current &&
+            [...deviceSelect.options].some((o) => o.value === current)
+          ) {
+            deviceSelect.value = current;
+          }
+        } catch (e) {
+          console.warn("Failed to enumerate devices", e);
+        }
+      }
+      navigator.mediaDevices?.addEventListener?.(
+        "devicechange",
+        refreshDevices
+      );
+      deviceSelect?.addEventListener("change", async () => {
+        if (!running) return;
+        stopCamera();
+        await startCamera();
+      });
+
+      // Override startCamera to use selected device if any
+      const _startCamera = startCamera;
+      startCamera = async function () {
+        const deviceId = deviceSelect?.value;
+        try {
+          try {
+            const constraints = deviceId
+              ? { video: { deviceId: { exact: deviceId } }, audio: false }
+              : {
+                  audio: false,
+                  video: {
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                  },
+                };
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+          } catch (e) {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: false,
+              video: true,
+            });
+          }
+          video.srcObject = stream;
+          await video.play();
+          if (video.readyState >= 2) {
+            resizeCanvasToVideo();
+          } else {
+            await new Promise((res) =>
+              video.addEventListener("loadedmetadata", res, { once: true })
+            );
+            resizeCanvasToVideo();
+          }
+          await refreshDevices();
+          saveSettings();
+        } catch (err) {
+          statusEl.textContent = "Camera error: " + err.message;
+          console.error(err);
+        }
+      };
+
+      // PWA Service Worker registration
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .catch((e) => console.warn("SW register failed", e));
+        });
+      }
+      mirrorToggle.addEventListener("change", () => {
+        mirror = mirrorToggle.checked;
+        video.style.transform = mirror ? "scaleX(-1)" : "";
+        saveSettings();
+      });
+      highPerfToggle.addEventListener("change", async () => {
+        await ensureBackend();
+        saveSettings();
+      });
+
+      window.addEventListener("resize", () => {
+        if (video && video.videoWidth) resizeCanvasToVideo();
+      });
+      window.addEventListener("beforeunload", () => {
+        stopCamera();
+      });
+      // Keyboard shortcut: S to start/stop
+      document.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "s") {
+          if (running) {
+            stopBtn.click();
+          } else {
+            startBtn.click();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
