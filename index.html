@@ -28,8 +28,10 @@
         border: 1px solid #1f2a3a;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
       }
-      /* Video gets black fallback background; canvas should be transparent so it doesn't look like an opaque block */
+      /* Video gets black fallback background; canvas overlays on top */
       video {
+        position: relative;
+        z-index: 0;
         display: block;
         width: 100%;
         height: auto;
@@ -37,6 +39,8 @@
         background: #000;
       }
       canvas {
+        position: absolute;
+        z-index: 1;
         display: block;
         width: 100%;
         height: auto;
@@ -74,8 +78,8 @@
       }
       canvas {
         position: absolute;
-        left: 12px;
-        top: 12px;
+        left: 0;
+        top: 0;
         pointer-events: none;
       }
       .viewport {
@@ -493,7 +497,7 @@
         canvas.style.width = "100%";
       }
 
-      function drawDetections(detections) {
+      function drawDetectionsBase(detections) {
         const w = canvas.width,
           h = canvas.height;
         ctx.save();
@@ -550,7 +554,7 @@
             canvas.height !== video.videoHeight
           )
             resizeCanvasToVideo();
-          drawDetections(predictions);
+          drawFilteredDetections(predictions);
         } catch (err) {
           console.error("Detection error:", err);
         }
@@ -684,23 +688,28 @@
       // Class filter
       const classFilter = document.getElementById("classFilter");
       function getAllowedClasses() {
-        const raw = (classFilter?.value || "").trim();
-        if (!raw) return null;
-        return new Set(
-          raw
-            .split(",")
-            .map((s) => s.trim().toLowerCase())
-            .filter(Boolean)
-        );
+        try {
+          const raw = (classFilter?.value || "").trim();
+          if (!raw) return null;
+          return new Set(
+            raw
+              .split(",")
+              .map((s) => s.trim().toLowerCase())
+              .filter(Boolean)
+          );
+        } catch (e) {
+          // If anything odd happens with the input, fall back to no filtering
+          console.warn("Class filter parse error", e);
+          return null;
+        }
       }
-      // Wrap drawDetections to filter classes
-      const _drawDetections = drawDetections;
-      function drawDetections(detections) {
+      // Filter and draw detections (avoid name shadowing)
+      function drawFilteredDetections(detections) {
         const allowed = getAllowedClasses();
         const filtered = allowed
           ? detections.filter((d) => allowed.has(String(d.class).toLowerCase()))
           : detections;
-        _drawDetections(filtered);
+        drawDetectionsBase(filtered);
       }
 
       // Persist settings

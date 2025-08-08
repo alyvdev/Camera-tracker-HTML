@@ -1,28 +1,57 @@
-'use strict';
-const CACHE_NAME = 'detector-cache-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-];
-self.addEventListener('install', (e) => {
+"use strict";
+const CACHE_NAME = "detector-cache-v3";
+const ASSETS = ["/index.html"];
+self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
-self.addEventListener('activate', (e) => {
+self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k)))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
-self.addEventListener('fetch', (e) => {
+self.addEventListener("fetch", (e) => {
   const req = e.request;
-  if (req.method !== 'GET') return;
+  if (req.method !== "GET") return;
+  // Network-first for HTML navigations to avoid stale pages after edits
+  const isHtml =
+    req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html");
+  if (isHtml) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+  // Cache-first for other assets
   e.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-      const resClone = res.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
-      return res;
-    }).catch(() => cached))
+    caches.match(req).then(
+      (cached) =>
+        cached ||
+        fetch(req)
+          .then((res) => {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+            return res;
+          })
+          .catch(() => cached)
+    )
   );
 });
-
